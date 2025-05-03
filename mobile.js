@@ -2,8 +2,6 @@ let highestZ = 1;
 
 class Paper {
   holdingPaper = false;
-  mouseTouchX = 0;
-  mouseTouchY = 0;
   mouseX = 0;
   mouseY = 0;
   prevMouseX = 0;
@@ -13,97 +11,69 @@ class Paper {
   rotation = Math.random() * 30 - 15;
   currentPaperX = 0;
   currentPaperY = 0;
-  rotating = false;
 
   init(paper) {
+    const updateTransform = () => {
+      paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
+    };
+
+    const startDrag = (x, y) => {
+      this.holdingPaper = true;
+      this.prevMouseX = x;
+      this.prevMouseY = y;
+
+      paper.style.zIndex = highestZ++;
+    };
+
+    const duringDrag = (x, y) => {
+      if (!this.holdingPaper) return;
+
+      this.velX = x - this.prevMouseX;
+      this.velY = y - this.prevMouseY;
+
+      this.currentPaperX += this.velX;
+      this.currentPaperY += this.velY;
+
+      this.prevMouseX = x;
+      this.prevMouseY = y;
+
+      updateTransform();
+    };
+
+    const endDrag = () => {
+      this.holdingPaper = false;
+    };
+
+    // Desktop
     document.addEventListener('mousemove', (e) => {
-      if (!this.rotating) {
-        this.mouseX = e.clientX;
-        this.mouseY = e.clientY;
-
-        this.velX = this.mouseX - this.prevMouseX;
-        this.velY = this.mouseY - this.prevMouseY;
-      }
-
-      if (this.holdingPaper) {
-        e.preventDefault(); // Prevent default action (like text selection)
-        if (!this.rotating) {
-          this.currentPaperX += this.velX;
-          this.currentPaperY += this.velY;
-        }
-        this.prevMouseX = this.mouseX;
-        this.prevMouseY = this.mouseY;
-
-        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
-      }
+      duringDrag(e.clientX, e.clientY);
     });
 
     paper.addEventListener('mousedown', (e) => {
-      if (this.holdingPaper) return;
-      this.holdingPaper = true;
-
-      paper.style.zIndex = highestZ;
-      highestZ += 1;
-
-      this.mouseTouchX = this.mouseX;
-      this.mouseTouchY = this.mouseY;
-      this.prevMouseX = this.mouseX;
-      this.prevMouseY = this.mouseY;
-
-      if (e.button === 2) {
-        this.rotating = true;
-      }
+      if (e.button !== 0) return; // Only left click
+      startDrag(e.clientX, e.clientY);
     });
 
-    window.addEventListener('mouseup', () => {
-      this.holdingPaper = false;
-      this.rotating = false;
-    });
+    window.addEventListener('mouseup', endDrag);
 
-    // Touch event listeners for mobile devices
+    // Touch
     paper.addEventListener('touchstart', (e) => {
-      if (this.holdingPaper) return;
-      this.holdingPaper = true;
-
-      e.preventDefault(); // Prevent default action
-      paper.style.zIndex = highestZ;
-      highestZ += 1;
-
-      this.mouseTouchX = e.touches[0].clientX;
-      this.mouseTouchY = e.touches[0].clientY;
-      this.prevMouseX = this.mouseTouchX;
-      this.prevMouseY = this.mouseTouchY;
+      const touch = e.touches[0];
+      startDrag(touch.clientX, touch.clientY);
+      e.preventDefault();
     });
 
     paper.addEventListener('touchmove', (e) => {
-      e.preventDefault(); // Prevent default scrolling
-      if (this.holdingPaper) {
-        this.mouseX = e.touches[0].clientX;
-        this.mouseY = e.touches[0].clientY;
-
-        this.velX = this.mouseX - this.prevMouseX;
-        this.velY = this.mouseY - this.prevMouseY;
-
-        this.currentPaperX += this.velX;
-        this.currentPaperY += this.velY;
-
-        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
-
-        this.prevMouseX = this.mouseX;
-        this.prevMouseY = this.mouseY;
-      }
+      const touch = e.touches[0];
+      duringDrag(touch.clientX, touch.clientY);
+      e.preventDefault(); // prevent scrolling
     });
 
-    window.addEventListener('touchend', () => {
-      this.holdingPaper = false;
-      this.rotating = false;
-    });
+    window.addEventListener('touchend', endDrag);
   }
 }
 
-const papers = Array.from(document.querySelectorAll('.paper'));
-
-papers.forEach(paper => {
+document.querySelectorAll('.paper').forEach(paper => {
   const p = new Paper();
   p.init(paper);
 });
