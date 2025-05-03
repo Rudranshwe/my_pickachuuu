@@ -1,33 +1,38 @@
 let highestZ = 1;
 
 class Paper {
-  holdingPaper = false;
-  mouseX = 0;
-  mouseY = 0;
-  prevMouseX = 0;
-  prevMouseY = 0;
-  velX = 0;
-  velY = 0;
-  rotation = Math.random() * 30 - 15;
-  currentPaperX = 0;
-  currentPaperY = 0;
+  constructor(paper) {
+    this.paper = paper;
+    this.holdingPaper = false;
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.prevMouseX = 0;
+    this.prevMouseY = 0;
+    this.velX = 0;
+    this.velY = 0;
+    this.rotation = Math.random() * 30 - 15;
+    this.currentPaperX = 0;
+    this.currentPaperY = 0;
 
-  init(paper) {
-    const updateTransform = () => {
-      paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
+    this.init();
+  }
+
+  init() {
+    const paper = this.paper;
+
+    const updatePosition = () => {
+      paper.style.transform = `translate(${this.currentPaperX}px, ${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
     };
 
-    const startDrag = (x, y) => {
+    const start = (x, y) => {
       this.holdingPaper = true;
       this.prevMouseX = x;
       this.prevMouseY = y;
-
       paper.style.zIndex = highestZ++;
     };
 
-    const duringDrag = (x, y) => {
+    const move = (x, y) => {
       if (!this.holdingPaper) return;
-
       this.velX = x - this.prevMouseX;
       this.velY = y - this.prevMouseY;
 
@@ -37,43 +42,42 @@ class Paper {
       this.prevMouseX = x;
       this.prevMouseY = y;
 
-      updateTransform();
+      updatePosition();
     };
 
-    const endDrag = () => {
+    const end = () => {
       this.holdingPaper = false;
     };
 
-    // Desktop
-    document.addEventListener('mousemove', (e) => {
-      duringDrag(e.clientX, e.clientY);
+    // Mouse
+    paper.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      start(e.clientX, e.clientY);
     });
 
-    paper.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) return; // Only left click
-      startDrag(e.clientX, e.clientY);
+    document.addEventListener("mousemove", (e) => {
+      move(e.clientX, e.clientY);
     });
 
-    window.addEventListener('mouseup', endDrag);
+    document.addEventListener("mouseup", end);
 
     // Touch
-    paper.addEventListener('touchstart', (e) => {
+    paper.addEventListener("touchstart", (e) => {
       const touch = e.touches[0];
-      startDrag(touch.clientX, touch.clientY);
+      start(touch.clientX, touch.clientY);
       e.preventDefault();
-    });
+    }, { passive: false });
 
-    paper.addEventListener('touchmove', (e) => {
+    paper.addEventListener("touchmove", (e) => {
       const touch = e.touches[0];
-      duringDrag(touch.clientX, touch.clientY);
-      e.preventDefault(); // prevent scrolling
-    });
+      move(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, { passive: false });
 
-    window.addEventListener('touchend', endDrag);
+    document.addEventListener("touchend", end);
   }
 }
 
-document.querySelectorAll('.paper').forEach(paper => {
-  const p = new Paper();
-  p.init(paper);
+document.querySelectorAll(".paper").forEach(paper => {
+  new Paper(paper);
 });
