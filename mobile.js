@@ -1,49 +1,83 @@
-class TouchPaper {
+let highestZ = 1;
+
+class Paper {
   constructor(paper) {
     this.paper = paper;
-    this.isDragging = false;
-    this.startX = 0;
-    this.startY = 0;
-    this.offsetX = 0;
-    this.offsetY = 0;
+    this.holdingPaper = false;
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.prevMouseX = 0;
+    this.prevMouseY = 0;
+    this.velX = 0;
+    this.velY = 0;
+    this.rotation = Math.random() * 30 - 15;
+    this.currentPaperX = 0;
+    this.currentPaperY = 0;
+
     this.init();
   }
 
   init() {
     const paper = this.paper;
 
-    // Enable touch-only dragging, mouse events are ignored
-    paper.addEventListener('touchstart', (e) => {
-      const touch = e.touches[0];
-      const rect = paper.getBoundingClientRect();
+    const updatePosition = () => {
+      paper.style.transform = `translate(${this.currentPaperX}px, ${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
+    };
 
-      this.offsetX = touch.clientX - rect.left;
-      this.offsetY = touch.clientY - rect.top;
+    const start = (x, y) => {
+      this.holdingPaper = true;
+      this.prevMouseX = x;
+      this.prevMouseY = y;
+      paper.style.zIndex = highestZ++;
+    };
 
-      this.isDragging = true;
-      e.preventDefault(); // Prevents any default touch actions
-    }, { passive: false });
+    const move = (x, y) => {
+      if (!this.holdingPaper) return;
+      this.velX = x - this.prevMouseX;
+      this.velY = y - this.prevMouseY;
 
-    document.addEventListener('touchmove', (e) => {
-      if (!this.isDragging) return;
+      this.currentPaperX += this.velX;
+      this.currentPaperY += this.velY;
 
-      const touch = e.touches[0];
-      const x = touch.clientX - this.offsetX;
-      const y = touch.clientY - this.offsetY;
+      this.prevMouseX = x;
+      this.prevMouseY = y;
 
-      this.paper.style.transform = `translate(${x}px, ${y}px) rotate(-5deg)`;
-      e.preventDefault(); // Prevents scrolling or zooming
-    }, { passive: false });
+      updatePosition();
+    };
 
-    document.addEventListener('touchend', () => {
-      this.isDragging = false;
+    const end = () => {
+      this.holdingPaper = false;
+    };
+
+    // Mouse
+    paper.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      start(e.clientX, e.clientY);
     });
+
+    document.addEventListener("mousemove", (e) => {
+      move(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("mouseup", end);
+
+    // Touch
+    paper.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      start(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    paper.addEventListener("touchmove", (e) => {
+      const touch = e.touches[0];
+      move(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener("touchend", end);
   }
 }
 
-document.querySelectorAll('.paper').forEach(paper => new TouchPaper(paper));
-
-// Disable mouse events entirely
-document.addEventListener('mousedown', (e) => e.preventDefault());
-document.addEventListener('mousemove', (e) => e.preventDefault());
-document.addEventListener('mouseup', (e) => e.preventDefault());
+document.querySelectorAll(".paper").forEach(paper => {
+  new Paper(paper);
+});
